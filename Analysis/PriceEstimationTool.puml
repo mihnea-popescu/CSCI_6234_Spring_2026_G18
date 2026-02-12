@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+
+actor Customer
+
+boundary "Price Estimation UI" as B3
+control "EstimationController" as C3
+entity "AuctionItem" as E4
+entity "AIModel" as E5
+entity "EstimationResult" as E6
+
+Customer --> B3
+B3 --> C3 : submit item details
+C3 --> E4 : create item data
+C3 --> E5 : request price prediction
+E5 --> C3 : predicted price
+C3 --> E6 : store result
+B3 <-- C3 : display estimate
+@enduml
+

@@ -1,0 +1,15 @@
+@startuml
+left to right direction
+
+actor Customer
+
+boundary "Auction List UI" as B2
+control "ViewAuctionsController" as C2
+entity "Auction" as E3
+
+Customer --> B2
+B2 --> C2 : request active auctions
+C2 --> E3 : fetch active auctions
+B2 <-- C2 : display auctions
+
+@enduml

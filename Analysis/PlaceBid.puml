@@ -1,0 +1,18 @@
+@startuml
+left to right direction
+
+actor Customer
+
+boundary "Bidding UI" as B1
+control "PlaceBidController" as C1
+entity "Auction" as E1
+entity "Bid" as E2
+
+Customer --> B1
+B1 --> C1 : submit bid amount
+C1 --> E1 : get current highest bid
+C1 --> E2 : create bid
+C1 --> E1 : update highest bid
+B1 <-- C1 : show result
+@enduml
+
