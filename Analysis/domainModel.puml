@@ -1,0 +1,146 @@
+@startuml Online Auction House Domain Model
+
+' Domain Classes
+
+class Customer {
+  -customerId: String
+  -name: String
+  -email: String
+  -phone: String
+  -address: String
+  -registrationDate: Date
+  +createAuction()
+  +placeBid()
+  +viewActiveAuctions()
+  +viewCompletedAuctions()
+  +usePriceEstimationTool()
+}
+
+class AuctionHouseManager {
+  -managerId: String
+  -name: String
+  -email: String
+  -accessLevel: String
+  +createAuction()
+  +trackHighestBid()
+  +trackWinner()
+  +viewAnalytics()
+  +overseeAuctions()
+}
+
+class Auction {
+  -auctionId: String
+  -title: String
+  -description: String
+  -startDate: DateTime
+  -endDate: DateTime
+  -startingPrice: Money
+  -reservePrice: Money
+  -status: AuctionStatus
+  -createdDate: DateTime
+  +open()
+  +close()
+  +cancel()
+  +getCurrentHighestBid()
+  +getWinner()
+  +isActive()
+  +isCompleted()
+}
+
+class Item {
+  -itemId: String
+  -name: String
+  -description: String
+  -category: String
+  -condition: String
+  -estimatedValue: Money
+  -imageUrls: List<String>
+  +getEstimatedPrice()
+}
+
+class Bid {
+  -bidId: String
+  -bidAmount: Money
+  -bidTime: DateTime
+  -status: BidStatus
+  +isWinning()
+  +validate()
+}
+
+class PriceEstimation {
+  -estimationId: String
+  -estimatedPrice: Money
+  -estimationDate: DateTime
+  -confidence: Percentage
+  -methodology: String
+  +calculateEstimate()
+  +getMarketComparison()
+}
+
+class Analytics {
+  -reportId: String
+  -reportDate: DateTime
+  -totalAuctions: Integer
+  -totalRevenue: Money
+  -activeUsers: Integer
+  +generateReport()
+  +getAuctionStatistics()
+  +getUserMetrics()
+  +getRevenueMetrics()
+}
+
+enum AuctionStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum BidStatus {
+  ACTIVE
+  WINNING
+  OUTBID
+  WON
+  LOST
+}
+
+' Relationships
+Customer "1" -- "0..*" Bid : places >
+Auction "1" -- "1" Item : contains >
+Auction "1" -- "0..*" Bid : receives >
+Bid "0..*" -- "1" Auction : placed on >
+AuctionHouseManager "1" -- "0..*" Auction : oversees >
+AuctionHouseManager "1" -- "0..*" Analytics : generates >
+Item "1" -- "0..1" PriceEstimation : has >
+Customer "1" -- "0..*" PriceEstimation : requests >
+Auction "1" -- "0..1" Bid : has highest 
+Auction "1" -- "0..1" Customer : has winner 
+
+note right of Customer
+  Primary actor who can:
+  - Place bids
+  - Browse active auctions
+  - View completed auctions
+  - Use price estimation tool
+end note
+
+note right of AuctionHouseManager
+  Secondary actor who can:
+  - Track highest bids
+  - Track winners
+  - Create auctions (admin)
+  - View platform analytics
+  - Oversee all auctions
+end note
+
+note bottom of Auction
+  Represents the auction event
+  Status transitions: DRAFT -> ACTIVE -> COMPLETED/CANCELLED
+end note
+
+note bottom of Bid
+  All bids are tracked
+  System determines winning bid automatically
+end note
+
+@enduml
