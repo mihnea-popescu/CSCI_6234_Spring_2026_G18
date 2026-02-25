@@ -1,0 +1,28 @@
+@startuml
+title Activity Diagram - View Completed Auctions
+
+start
+
+:Open main menu;
+:Select "View Completed Auctions";
+
+:ViewCompletedAuctionsController receives request;
+:Validate request;
+
+if (Request valid?) then (Yes)
+  :Query Auction Database for completed auctions;
+
+  if (Completed auctions found?) then (Yes)
+    :Return completed auctions list;
+  else (No)
+    :Return message "No completed auctions";
+  endif
+
+else (No)
+  :Return error message;
+endif
+
+:Display results (or error) to user;
+
+stop
+@enduml

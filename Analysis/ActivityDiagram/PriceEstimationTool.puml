@@ -1,0 +1,33 @@
+@startuml
+title Activity Diagram - Price Estimation Tool
+
+start
+
+:Open Price Estimation UI;
+:Enter item details;
+:Submit request;
+
+:Receive request in EstimationController;
+:Validate item details;
+
+if (Details valid?) then (Yes)
+  :Create AuctionItem data;
+  :Send data to AI Model;
+  :Receive predicted price;
+
+  if (Prediction successful?) then (Yes)
+    :Store estimation result;
+    :Return predicted price;
+  else (No)
+    :Return error "Prediction failed";
+  endif
+
+else (No)
+  :Return validation errors;
+endif
+
+:Display result in UI;
+
+stop
+
+@enduml

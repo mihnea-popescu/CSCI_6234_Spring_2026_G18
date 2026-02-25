@@ -1,0 +1,34 @@
+@startuml
+title Activity Diagram — Place Bid Use Case
+
+start
+:Customer opens Bidding UI;
+:Selects an auction;
+:Enters bid amount;
+:Submits bid;
+
+:PlaceBidController receives request;
+:Fetch auction details;
+
+if (Auction exists?) then (yes)
+  if (Auction is active?) then (yes)
+    :Get current highest bid;
+
+    if (Bid amount > current highest bid?) then (yes)
+      :Create Bid record;
+      :Update Auction highest bid;
+      :Return "Bid accepted";
+    else (no)
+      :Return "Bid too low";
+    endif
+
+  else (no)
+    :Return "Auction not active";
+  endif
+else (no)
+  :Return "Auction not found";
+endif
+
+:Show result in UI;
+stop
+@enduml

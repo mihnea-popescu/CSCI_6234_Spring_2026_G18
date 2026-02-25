@@ -1,0 +1,27 @@
+@startuml
+title Activity Diagram - Create Auction
+
+start
+
+:Manager opens CLI;
+:Select "Create Auction";
+:Enter item details;
+:Upload item details;
+
+:Upload Service receives data;
+:Validate item details;
+
+if (Details valid?) then (Yes)
+  :Process item details;
+  :Store item details in Items Database;
+
+  :Create auction entry in Auction Database;
+  :Return "Auction created successfully";
+else (No)
+  :Return validation errors;
+endif
+
+:Display result to Manager;
+
+stop
+@enduml

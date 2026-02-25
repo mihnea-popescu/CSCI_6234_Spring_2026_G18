@@ -1,0 +1,28 @@
+@startuml
+title Activity Diagram - Track Highest Bid and Winner
+
+start
+
+:Open main menu;
+:Select "Track Highest Bid and Winner";
+
+:TrackHighestBidAndWinnerController receives request;
+:Validate request;
+
+if (Request valid?) then (Yes)
+  :Fetch highest bid + winner details;
+
+  if (Data found?) then (Yes)
+    :Return highest bid + winner details;
+  else (No)
+    :Return message "No bids found / Auction has no winner yet";
+  endif
+
+else (No)
+  :Return error message;
+endif
+
+:Display highest bid and winner details (or error);
+
+stop
+@enduml

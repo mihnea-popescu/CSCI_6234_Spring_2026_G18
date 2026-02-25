@@ -1,0 +1,29 @@
+@startuml
+title Activity Diagram - View Active Auctions
+
+start
+
+:Open Auction List UI;
+:Request active auctions;
+
+:ViewAuctionsController receives request;
+:Validate request;
+
+if (Request valid?) then (Yes)
+  :Fetch active auctions from database;
+
+  if (Auctions found?) then (Yes)
+    :Return auction list;
+  else (No)
+    :Return message "No active auctions";
+  endif
+
+else (No)
+  :Return error message;
+endif
+
+:Display results in UI;
+
+stop
+
+@enduml
