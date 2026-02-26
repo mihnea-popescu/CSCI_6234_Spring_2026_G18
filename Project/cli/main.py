@@ -5,7 +5,7 @@ import click
 import shlex
 import sys
 from commands.auth import logout, login, whoami, register
-from commands.customer import list_auctions, view_auction, place_bid, my_bids
+from commands.customer import list_auctions, view_auction, place_bid, my_bids, register_auction
 from commands.manager import create_auction, add_item, end_auction
 from api_client import APIClient
 
@@ -32,12 +32,13 @@ def display_help():
   whoami          Show current user
 
 🏛️ Auction Commands:
-  list-auctions   List all active auctions
-  view-auction   View auction details (requires auction_id)
+  list-auctions   List all auctions with registration status
+  view-auction    View auction details (requires auction_id)
 
 🛡️ Customer Commands:
-  place-bid      Place a bid (requires item_id amount)
-  my-bids         View your bidding history
+  register-auction  Register for an auction (requires auction_id)
+  place-bid         Place a bid (requires auction_id item_id amount)
+  my-bids           View your bidding history
 
 👑 Manager Commands (requires login):
   create-auction  Create a new auction (requires name)
@@ -48,7 +49,8 @@ def display_help():
   login
   create-auction "Spring Art Collection"
   view-auction 1
-  place-bid 123 250.50
+  register-auction 1
+  place-bid 1 123 250.50
   logout
 
 ⌨️  Type 'help' to show this message again.
@@ -80,10 +82,12 @@ def execute_command(command_input):
             list_auctions.main(standalone_mode=False)
         elif cmd_name == 'view-auction':
             view_auction.main(standalone_mode=False, args=args)
+        elif cmd_name == 'register-auction':
+            register_auction.main(standalone_mode=False, args=args)
         elif cmd_name == 'place-bid':
             place_bid.main(standalone_mode=False, args=args)
         elif cmd_name == 'my-bids':
-            my_bids.main(standalone_mode=False)
+            my_bids.main(standalone_mode=False,args=[])
         elif cmd_name == 'create-auction':
             create_auction.main(standalone_mode=False, args=args)
         elif cmd_name == 'add-item':
@@ -154,13 +158,15 @@ def run_interactive():
             elif cmd_name == 'whoami':
                 whoami.main(standalone_mode=False, args=[])
             elif cmd_name == 'list-auctions':
-                list_auctions.main(standalone_mode=False)
+                list_auctions.main(standalone_mode=False,args=[])
             elif cmd_name == 'view-auction':
                 view_auction.main(standalone_mode=False, args=args)
+            elif cmd_name == 'register-auction':
+                register_auction.main(standalone_mode=False, args=args)
             elif cmd_name == 'place-bid':
                 place_bid.main(standalone_mode=False, args=args)
             elif cmd_name == 'my-bids':
-                my_bids.main(standalone_mode=False)
+                my_bids.main(standalone_mode=False,args=[])
             elif cmd_name == 'create-auction':
                 create_auction.main(standalone_mode=False, args=args)
             elif cmd_name == 'add-item':
@@ -196,6 +202,7 @@ def main(interactive):
         cli.add_command(whoami)
         cli.add_command(list_auctions)
         cli.add_command(view_auction)
+        cli.add_command(register_auction)
         cli.add_command(place_bid)
         cli.add_command(my_bids)
         cli.add_command(create_auction)

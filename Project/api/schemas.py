@@ -46,6 +46,16 @@ class AuctionResponse(AuctionBase):
     created_by: int
     status: str
     creator: UserResponse
+    is_registered: bool = False
+    
+    class Config:
+        from_attributes = True
+
+class AuctionRegistrationResponse(BaseModel):
+    id: int
+    user_id: int
+    auction_id: int
+    registered_at: datetime
     
     class Config:
         from_attributes = True

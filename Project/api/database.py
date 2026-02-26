@@ -36,6 +36,7 @@ class User(Base):
     created_auctions = relationship("Auction", back_populates="creator")
     bids = relationship("Bid", back_populates="bidder")
     current_bids = relationship("AuctionItem")
+    registrations = relationship("AuctionRegistration", back_populates="user")
     
     def __repr__(self):
         return f"<User(id={self.id}, name='{self.name}', role='{self.role}')>"
@@ -52,6 +53,7 @@ class Auction(Base):
     
     creator = relationship("User", back_populates="created_auctions")
     items = relationship("AuctionItem", back_populates="auction")
+    registrations = relationship("AuctionRegistration", back_populates="auction")
     
     def __repr__(self):
         return f"<Auction(id={self.id}, name='{self.name}', status='{self.status}')>"
@@ -88,6 +90,20 @@ class Bid(Base):
     
     def __repr__(self):
         return f"<Bid(id={self.id}, amount={self.amount}, item_id={self.item_id})>"
+
+class AuctionRegistration(Base):
+    __tablename__ = "auction_registrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    auction_id = Column(Integer, ForeignKey("auctions.id"), nullable=False)
+    registered_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="registrations")
+    auction = relationship("Auction", back_populates="registrations")
+    
+    def __repr__(self):
+        return f"<AuctionRegistration(user_id={self.user_id}, auction_id={self.auction_id})>"
 
 def get_db():
     db = SessionLocal()
