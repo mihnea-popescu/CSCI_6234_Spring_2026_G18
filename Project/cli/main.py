@@ -146,6 +146,8 @@ def run_interactive():
                 register.main(standalone_mode=False, args=[])
             elif command_lower == 'whoami':
                 whoami.main(standalone_mode=False, args=[])
+            elif command_lower == 'list-auctions':
+                list_auctions.main(standalone_mode=False)
             elif command_lower == 'logout':
                 click.echo("👋 Logging out...")
                 logout.main(standalone_mode=False, args=[])

@@ -6,7 +6,7 @@ from typing import Dict, List, Any, Union
 import click
 
 class APIClient:
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://127.0.0.1:8000"):
         self.base_url = base_url
         self.token = self._load_token()
     
@@ -143,7 +143,8 @@ class APIClient:
     # Auction methods
     def get_auctions(self) -> List:
         """Get all auctions"""
-        result = self._make_request("GET", "/auctions/")
+        result = self._make_request("GET", "/get_auctions")
+        print(result)
         return result if isinstance(result, list) else []
     
     def get_auction(self, auction_id: int) -> Dict:
