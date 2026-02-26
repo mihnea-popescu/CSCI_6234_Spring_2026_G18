@@ -2,6 +2,7 @@
 """Interactive Auction House CLI with logout as exit command"""
 
 import click
+import shlex
 import sys
 from commands.auth import logout, login, whoami, register
 from commands.customer import list_auctions, view_auction, place_bid, my_bids
@@ -129,32 +130,46 @@ def run_interactive():
             if not command_input.strip():
                 continue
 
-            # Handle commands
-            command_lower = command_input.strip().lower()
+            parts = shlex.split(command_input.strip())
+            if not parts:
+                continue
+            cmd_name = parts[0].lower()
+            args = parts[1:]
 
-            if command_lower in ['help', 'h', '?']:
+            if cmd_name in ['help', 'h', '?']:
                 display_help()
-            elif command_lower == 'logout':
-                click.echo("👋 Logging out...")
-                logout(args=[])
-                click.echo("👋 Goodbye!")
-                return
-            elif command_lower == 'login':
+            elif cmd_name == 'logout':
+                if args:
+                    click.echo("❌ 'logout' command doesn't take arguments")
+                else:
+                    click.echo("👋 Logging out...")
+                    logout(args=[])
+                    click.echo("👋 Goodbye!")
+                    return
+            elif cmd_name == 'login':
                 login.main(standalone_mode=False, args=[])
                 client = APIClient()  # Recreate client to pick up new token
-            elif command_lower == 'register':
+            elif cmd_name == 'register':
                 register.main(standalone_mode=False, args=[])
-            elif command_lower == 'whoami':
+            elif cmd_name == 'whoami':
                 whoami.main(standalone_mode=False, args=[])
-            elif command_lower == 'list-auctions':
+            elif cmd_name == 'list-auctions':
                 list_auctions.main(standalone_mode=False)
-            elif command_lower == 'logout':
-                click.echo("👋 Logging out...")
-                logout.main(standalone_mode=False, args=[])
-                click.echo("👋 Goodbye!")
-                return
-            elif command_lower == 'create-auction':
-                create_auction.main(standalone_mode=False, args=[])
+            elif cmd_name == 'view-auction':
+                view_auction.main(standalone_mode=False, args=args)
+            elif cmd_name == 'place-bid':
+                place_bid.main(standalone_mode=False, args=args)
+            elif cmd_name == 'my-bids':
+                my_bids.main(standalone_mode=False)
+            elif cmd_name == 'create-auction':
+                create_auction.main(standalone_mode=False, args=args)
+            elif cmd_name == 'add-item':
+                add_item.main(standalone_mode=False, args=args)
+            elif cmd_name == 'end-auction':
+                end_auction.main(standalone_mode=False, args=args)
+            else:
+                click.echo(f"❌ Unknown command: {cmd_name}")
+                click.echo("   Type 'help' for available commands.")
 
         except KeyboardInterrupt:
             click.echo("\n👋 Interrupted. Use 'logout' to exit gracefully.")
