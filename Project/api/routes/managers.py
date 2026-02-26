@@ -2,7 +2,7 @@ import csv
 import io
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
@@ -124,8 +124,17 @@ async def import_auctions_csv(
 
 @router.post("/auctions", response_model=AuctionResponse)
 async def create_auction(auction: AuctionCreate, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
-    # Placeholder: Create new auction
-    return {"id": 1, "name": auction.name, "status": "active", "created_by": current_user.id}
+    db_auction = Auction(
+        name=auction.name,
+        ended_at=auction.ended_at,
+        created_by=current_user.id,
+        status="active",
+    )
+    db.add(db_auction)
+    db.commit()
+    db.refresh(db_auction)
+    db_auction.creator = current_user
+    return db_auction
 
 @router.put("/auctions/{auction_id}", response_model=AuctionResponse)
 async def update_auction(auction_id: int, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
@@ -134,8 +143,28 @@ async def update_auction(auction_id: int, current_user: User = Depends(auth.get_
 
 @router.post("/auctions/{auction_id}/items", response_model=AuctionItemResponse)
 async def add_item_to_auction(auction_id: int, item: AuctionItemCreate, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
-    # Placeholder: Add item to auction
-    return {"id": 1, "name": item.name, "auction_id": auction_id, "opening_price": item.opening_price}
+    auction = db.query(Auction).filter(Auction.id == auction_id).first()
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    closing = item.closing_price if item.closing_price is not None else Decimal("0")
+    db_item = AuctionItem(
+        name=item.name,
+        opening_price=item.opening_price,
+        closing_price=closing,
+        auction_id=auction_id,
+        current_bid=Decimal("0"),
+        current_bidder_id=None,
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    db_item = (
+        db.query(AuctionItem)
+        .options(joinedload(AuctionItem.auction).joinedload(Auction.creator))
+        .filter(AuctionItem.id == db_item.id)
+        .one()
+    )
+    return db_item
 
 @router.post("/auctions/{auction_id}/end", response_model=AuctionResponse)
 async def end_auction(auction_id: int, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):

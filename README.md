@@ -5,7 +5,7 @@ Start API:
 ```
 cd Project/api/
 conda activate csci-6234
-uvicorn main:app
+uvicorn main:app --reload
 ```
 
 Start CLI:
