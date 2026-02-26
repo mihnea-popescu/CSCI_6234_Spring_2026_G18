@@ -161,7 +161,7 @@ class APIClient:
         data: Dict[str, Any] = {"name": name}
         if ended_at is not None:
             data["ended_at"] = ended_at
-        result = self._make_request("POST", "/auctions/", data)
+        result = self._make_request("POST", "/managers/auctions/", data)
         return result if isinstance(result, dict) else {}
     
     def end_auction(self, auction_id: int) -> Dict:

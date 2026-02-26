@@ -147,24 +147,6 @@ async def place_bid(
     )
     return bid
 
-@router.post("/", response_model=AuctionResponse)
-async def create_auction(
-    auction: AuctionCreate,
-    current_user: User = Depends(auth.get_current_manager),
-    db: Session = Depends(get_db),
-):
-    db_auction = Auction(
-        name=auction.name,
-        ended_at=auction.ended_at,
-        created_by=current_user.id,
-        status="active",
-    )
-    db.add(db_auction)
-    db.commit()
-    db.refresh(db_auction)
-    db_auction.creator = current_user
-    return db_auction
-
 @router.put("/{auction_id}", response_model=AuctionResponse)
 async def update_auction(
     auction_id: int,
