@@ -6,7 +6,7 @@ import shlex
 import sys
 from commands.auth import logout, login, whoami, register
 from commands.customer import list_auctions, view_auction, place_bid, my_bids
-from commands.manager import create_auction, add_item, end_auction
+from commands.manager import create_auction, add_item, end_auction, update_auction
 from api_client import APIClient
 
 @click.group()
@@ -41,6 +41,7 @@ def display_help():
 
 👑 Manager Commands (requires login):
   create-auction  Create a new auction (requires name)
+  update-auction  Update an auction (requires auction_id)
   add-item        Add item to auction (requires auction_id name opening_price)
   end-auction     End an auction (requires auction_id)
 
@@ -90,6 +91,8 @@ def execute_command(command_input):
             add_item.main(standalone_mode=False, args=args)
         elif cmd_name == 'end-auction':
             end_auction.main(standalone_mode=False, args=args)
+        elif cmd_name == 'update-auction':
+            update_auction.main(standalone_mode=False, args=args)
         else:
             click.echo(f"❌ Unknown command: {cmd_name}")
             click.echo("   Type 'help' for available commands.")
@@ -167,6 +170,8 @@ def run_interactive():
                 add_item.main(standalone_mode=False, args=args)
             elif cmd_name == 'end-auction':
                 end_auction.main(standalone_mode=False, args=args)
+            elif cmd_name == 'update-auction':
+                update_auction.main(standalone_mode=False, args=args)
             else:
                 click.echo(f"❌ Unknown command: {cmd_name}")
                 click.echo("   Type 'help' for available commands.")
@@ -201,6 +206,7 @@ def main(interactive):
         cli.add_command(create_auction)
         cli.add_command(add_item)
         cli.add_command(end_auction)
+        cli.add_command(update_auction)
         
         # Run normal Click CLI
         cli()

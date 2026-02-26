@@ -2,7 +2,7 @@ import requests
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Optional, Union
 import click
 
 class APIClient:
@@ -182,3 +182,21 @@ class APIClient:
         """Get current user's bids"""
         result = self._make_request("GET", "/customers/bids")
         return result if isinstance(result, list) else []
+
+    def update_auction(
+        self,
+        auction_id: int,
+        name: Optional[str] = None,
+        ended_at: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> Dict:
+        """Update auction. Only provided fields are sent to the API."""
+        data: Dict[str, Any] = {}
+        if name is not None:
+            data["name"] = name
+        if ended_at is not None:
+            data["ended_at"] = ended_at
+        if status is not None:
+            data["status"] = status
+        result = self._make_request("PUT", f"/managers/auctions/{auction_id}", data)
+        return result if isinstance(result, dict) else {}

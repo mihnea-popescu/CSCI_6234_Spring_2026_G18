@@ -63,3 +63,24 @@ def end_auction(auction_id):
             click.echo(f"   Ended At: {result['ended_at']}")
     else:
         click.echo("❌ Failed to end auction.")
+
+@click.command()
+@click.argument('auction_id')
+@click.option('--name', default=None, help='Name of the auction')
+@click.option('--ended-at', default=None, help='End time in ISO format (e.g. 2025-12-31T23:59:59)')
+@click.option('--status', default=None, help='Status (e.g. active, ended, cancelled)')
+@require_auth
+def update_auction(auction_id, name, ended_at, status):
+    """Update an auction"""
+    if name is None and ended_at is None and status is None:
+        click.echo("❌ Provide at least one of: --name, --ended-at, --status")
+        return
+    client = APIClient()
+    result = client.update_auction(auction_id, name=name, ended_at=ended_at, status=status)
+    if result and 'id' in result:
+        click.echo(f"✅ Auction updated successfully!")
+        click.echo(f"   ID: {result['id']}")
+        click.echo(f"   Name: {result['name']}")
+        click.echo(f"   Status: {result['status']}")
+    else:
+        click.echo("❌ Failed to update auction.")

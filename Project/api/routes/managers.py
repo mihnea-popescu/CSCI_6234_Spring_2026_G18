@@ -2,14 +2,14 @@ import csv
 import io
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 
 from database import get_db, User, Auction, AuctionItem, Bid
-from schemas import AuctionResponse, AuctionCreate, AuctionItemCreate, AuctionItemResponse, AuctionImportResult
+from schemas import AuctionResponse, AuctionCreate, AuctionUpdate, AuctionItemCreate, AuctionItemResponse, AuctionImportResult
 from services.auction import ensure_auction_closed_if_ended, parse_auctions_csv
 import auth
 
@@ -136,10 +136,37 @@ async def create_auction(auction: AuctionCreate, current_user: User = Depends(au
     db_auction.creator = current_user
     return db_auction
 
+VALID_AUCTION_STATUSES = ("active", "ended", "cancelled")
+
 @router.put("/auctions/{auction_id}", response_model=AuctionResponse)
-async def update_auction(auction_id: int, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
-    # Placeholder: Update auction details
-    return {"id": auction_id, "name": "Updated Auction", "status": "active"}
+async def update_auction(
+    auction_id: int,
+    body: AuctionUpdate = Body(...),
+    current_user: User = Depends(auth.get_current_manager),
+    db: Session = Depends(get_db),
+):
+    db_auction = (
+        db.query(Auction)
+        .options(joinedload(Auction.creator))
+        .filter(Auction.id == auction_id)
+        .first()
+    )
+    if not db_auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    if body.name is not None:
+        db_auction.name = body.name
+    if body.ended_at is not None:
+        db_auction.ended_at = body.ended_at
+    if body.status is not None:
+        if body.status not in VALID_AUCTION_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"status must be one of: {', '.join(VALID_AUCTION_STATUSES)}",
+            )
+        db_auction.status = body.status
+    db.commit()
+    db.refresh(db_auction)
+    return db_auction
 
 @router.post("/auctions/{auction_id}/items", response_model=AuctionItemResponse)
 async def add_item_to_auction(auction_id: int, item: AuctionItemCreate, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
