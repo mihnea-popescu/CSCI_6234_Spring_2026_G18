@@ -146,6 +146,11 @@ class APIClient:
         result = self._make_request("GET", "/auctions/get_auctions")
         return result if isinstance(result, list) else []
     
+    def register_for_auction(self, auction_id: int) -> Dict:
+        """Register for an auction"""
+        result = self._make_request("POST", f"/auctions/{auction_id}/register")
+        return result if isinstance(result, dict) else {}
+    
     def get_auction(self, auction_id: int) -> Dict:
         """Get specific auction"""
         result = self._make_request("GET", f"/auctions/{auction_id}")
@@ -172,10 +177,10 @@ class APIClient:
         return result if isinstance(result, dict) else {}
     
     # Bid methods
-    def place_bid(self, item_id: int, amount: float) -> Dict:
+    def place_bid(self, auction_id: int, item_id: int, amount: float) -> Dict:
         """Place bid on item"""
         data = {"item_id": item_id, "amount": amount}
-        result = self._make_request("POST", "/customers/bid", data)
+        result = self._make_request("POST", f"/auctions/{auction_id}/bids", data)
         return result if isinstance(result, dict) else {}
     
     def get_user_bids(self) -> List:
