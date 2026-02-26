@@ -9,8 +9,10 @@ def main(standalone_mode=True):
         pass  # Will be handled by calling the decorated function directly
 
 @click.command()
+@click.argument('name')
+@click.option('--ended-at', default=None, help='End time in ISO format (e.g. 2025-12-31T23:59:59)')
 @require_auth
-def create_auction():
+def create_auction(name, ended_at):
     """Create a new auction"""
     # Verify the user is a manager
     current_user = APIClient().get_current_user()
@@ -18,7 +20,7 @@ def create_auction():
         click.echo("❌ You are not authorized to create an auction.")
         return
     client = APIClient()
-    result = client.create_auction(name)
+    result = client.create_auction(name=name, ended_at=ended_at)
     if result and 'id' in result:
         click.echo(f"✅ Auction created successfully!")
         click.echo(f"   ID: {result['id']}")
