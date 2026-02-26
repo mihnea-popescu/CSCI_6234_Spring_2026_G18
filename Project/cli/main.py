@@ -151,13 +151,17 @@ def run_interactive():
                 logout.main(standalone_mode=False, args=[])
                 click.echo("👋 Goodbye!")
                 return
+            elif command_lower == 'create-auction':
+                create_auction.main(standalone_mode=False, args=[])
 
         except KeyboardInterrupt:
             click.echo("\n👋 Interrupted. Use 'logout' to exit gracefully.")
+            return
         except EOFError:
             click.echo("\n👋 Use 'logout' to exit gracefully.")
+            continue  # Stay in app, keep session
         except Exception as e:
-            click.echo(f"THis is an Error: {e}")
+            click.echo(f"Error: {e}")
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option('--interactive', '-i', is_flag=True, help='Run in interactive mode')

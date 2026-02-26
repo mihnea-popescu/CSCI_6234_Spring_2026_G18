@@ -9,10 +9,14 @@ def main(standalone_mode=True):
         pass  # Will be handled by calling the decorated function directly
 
 @click.command()
-@click.argument('name')
 @require_auth
-def create_auction(name):
+def create_auction():
     """Create a new auction"""
+    # Verify the user is a manager
+    current_user = APIClient().get_current_user()
+    if current_user['role'] != 'manager':
+        click.echo("❌ You are not authorized to create an auction.")
+        return
     client = APIClient()
     result = client.create_auction(name)
     if result and 'id' in result:
