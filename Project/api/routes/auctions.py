@@ -8,7 +8,7 @@ import auth
 
 router = APIRouter()
 
-@router.get("/", response_model=List[AuctionResponse])
+@router.get("/get_auctions", response_model=List[AuctionResponse])
 async def get_auctions(
     current_user: User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
