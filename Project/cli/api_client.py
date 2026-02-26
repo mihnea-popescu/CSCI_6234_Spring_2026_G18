@@ -143,8 +143,7 @@ class APIClient:
     # Auction methods
     def get_auctions(self) -> List:
         """Get all auctions"""
-        result = self._make_request("GET", "/get_auctions")
-        print(result)
+        result = self._make_request("GET", "/auctions/get_auctions")
         return result if isinstance(result, list) else []
     
     def get_auction(self, auction_id: int) -> Dict:
