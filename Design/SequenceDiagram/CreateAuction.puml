@@ -1,0 +1,16 @@
+@startuml Create Auction
+title Create Auction
+actor Manager
+participant Client
+participant API
+database Database
+
+Manager -> Client: create auction (name)
+Client -> API: POST /auctions
+API -> Database: get current user
+Database --> API: user
+API -> Database: insert auction
+Database --> API: auction id
+API --> Client: AuctionResponse
+Client --> Manager: auction created
+@enduml

@@ -1,0 +1,100 @@
+@startuml ClassDiagram
+title Online Auction House System - Class Diagram
+
+class User {
+  - id: int
+  - name: string
+  - email: string
+  - password: string
+  - role: string
+  --
+  + get_auctions(): List<Auction>
+  + get_bids(): List<Bid>
+  + get_registrations(): List<AuctionRegistration>
+}
+
+class Auction {
+  - id: int
+  - name: string
+  - created_at: datetime
+  - ended_at: datetime
+  - created_by: int
+  - status: string
+  --
+  + get_items(): List<AuctionItem>
+  + get_registrations(): List<AuctionRegistration>
+  + is_active(): bool
+  + is_ended(): bool
+}
+
+class AuctionItem {
+  - id: int
+  - name: string
+  - opening_price: Decimal
+  - closing_price: Decimal
+  - auction_id: int
+  - current_bid: Decimal
+  - current_bidder_id: int
+  --
+  + get_highest_bid(): Decimal
+  + get_current_bidder(): User
+  + get_bids(): List<Bid>
+}
+
+class Bid {
+  - id: int
+  - item_id: int
+  - bidder_id: int
+  - amount: Decimal
+  - created_at: datetime
+  --
+  + get_item(): AuctionItem
+  + get_bidder(): User
+}
+
+class AuctionRegistration {
+  - id: int
+  - user_id: int
+  - auction_id: int
+  - registered_at: datetime
+  --
+  + get_user(): User
+  + get_auction(): Auction
+}
+
+class AuctionService {
+  + ensure_auction_closed_if_ended(auction: Auction): void
+  + parse_auctions_csv(content: string): List
+}
+
+class PricePrediction {
+  - id: int
+  - item_id: int
+  - predicted_min: Decimal
+  - predicted_max: Decimal
+  - created_at: datetime
+  --
+  + get_item(): AuctionItem
+  + get_price_range(): tuple
+}
+
+' Associations
+User "1" -- "*" Auction : created_auctions >
+User "1" -- "*" Bid : bids >
+User "1" -- "*" AuctionRegistration : registrations >
+Auction "1" -- "*" AuctionItem : items >
+Auction "1" -- "*" AuctionRegistration : registrations >
+AuctionItem "*" -- "1" Auction : auction >
+AuctionItem "1" -- "*" Bid : bids >
+AuctionItem "1" -- "*" PricePrediction : predictions >
+AuctionItem "*" -- "0..1" User : current_bidder >
+Bid "*" -- "1" AuctionItem : item >
+Bid "*" -- "1" User : bidder >
+PricePrediction "*" -- "1" AuctionItem : item >
+AuctionRegistration "*" -- "1" User : user >
+AuctionRegistration "*" -- "1" Auction : auction >
+
+AuctionService ..> Auction : uses
+AuctionService ..> AuctionItem : updates
+
+@enduml
