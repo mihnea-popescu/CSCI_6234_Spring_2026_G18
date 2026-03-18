@@ -1,17 +1,12 @@
-@startuml Price Estimation Tool
+@startuml PriceEstimationTool
 title Price Estimation Tool
 actor Customer
 participant Client
 participant API
-database Database
 participant AI
 
 Customer -> Client: view item / estimate value
 Client -> API: GET /auctions/{id}
-API -> Database: authenticate user
-Database --> API: user
-API -> Database: get auction with items (opening_price, current_bid)
-Database --> API: auction, items
 API -> AI: item data (opening_price, current_bid, metadata)
 AI --> API: predicted price range
 API --> Client: AuctionDetailResponse (with estimated price)

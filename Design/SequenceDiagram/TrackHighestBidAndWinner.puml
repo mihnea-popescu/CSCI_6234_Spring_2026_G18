@@ -1,16 +1,11 @@
-@startuml Track Highest Bid and Winner
+@startuml TrackHighestBidAndWinner
 title Track Highest Bid and Winner
 actor Manager
 participant Client
 participant API
-database Database
 
 Manager -> Client: view auction results
 Client -> API: GET /auctions/{id} or export
-API -> Database: authenticate manager
-Database --> API: manager
-API -> Database: get auction, items, bids
-Database --> API: items with current_bid, current_bidder
 API --> Client: auction details with winners
 Client --> Manager: display highest bid and winner per item
 @enduml
