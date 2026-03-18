@@ -10,7 +10,8 @@ from typing import List, Optional
 
 from database import get_db, User, Auction, AuctionItem, Bid
 from schemas import AuctionResponse, AuctionCreate, AuctionUpdate, AuctionItemCreate, AuctionItemResponse, AuctionImportResult
-from services.auction import ensure_auction_closed_if_ended, parse_auctions_csv
+from services.auction import ensure_auction_closed_if_ended, end_auction_manually, parse_auctions_csv
+from services import auction as auction_service
 import auth
 
 router = APIRouter()
@@ -195,5 +196,13 @@ async def add_item_to_auction(auction_id: int, item: AuctionItemCreate, current_
 
 @router.post("/auctions/{auction_id}/end", response_model=AuctionResponse)
 async def end_auction(auction_id: int, current_user: User = Depends(auth.get_current_manager), db: Session = Depends(get_db)):
-    # Placeholder: End auction and process results
-    return {"id": auction_id, "name": "Ended Auction", "status": "ended"}
+    auction = db.query(Auction).filter(Auction.id == auction_id).first()
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    if auction.status == "ended":
+        raise HTTPException(status_code=400, detail="Auction already ended")
+    if auction.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Cannot end a cancelled auction")
+    
+    auction_service.end_auction_manually(db, auction)
+    return auction

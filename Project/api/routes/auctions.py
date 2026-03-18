@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from database import get_db, Auction, AuctionItem, Bid, User, AuctionRegistration
 from schemas import AuctionResponse, AuctionDetailResponse, AuctionCreate, BidCreate, BidResponse, AuctionRegistrationResponse
-from services.auction import ensure_auction_closed_if_ended
+from services.auction import ensure_auction_closed_if_ended, end_auction_manually
+from services import auction as auction_service
 import auth
 
 router = APIRouter()
@@ -162,5 +163,13 @@ async def end_auction(
     current_user: User = Depends(auth.get_current_manager),
     db: Session = Depends(get_db),
 ):
-    # Placeholder: End auction and finalize sales
-    return {"id": auction_id, "name": "Ended Auction", "status": "ended"}
+    auction = db.query(Auction).filter(Auction.id == auction_id).first()
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    if auction.status == "ended":
+        raise HTTPException(status_code=400, detail="Auction already ended")
+    if auction.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Cannot end a cancelled auction")
+    
+    auction_service.end_auction_manually(db, auction)
+    return auction

@@ -76,6 +76,21 @@ def ensure_auction_closed_if_ended(db: Session, auction: Auction) -> None:
         return
     if datetime.utcnow() < auction.ended_at:
         return
+    _close_auction(db, auction)
+
+
+def end_auction_manually(db: Session, auction: Auction) -> None:
+    """
+    Manually end an auction regardless of scheduled end time.
+    Sets each item's closing_price = current_bid.
+    """
+    if auction.status != "active":
+        return
+    _close_auction(db, auction)
+
+
+def _close_auction(db: Session, auction: Auction) -> None:
+    """Internal: close auction and save closing prices."""
     auction.status = "ended"
     for item in auction.items:
         item.closing_price = item.current_bid
