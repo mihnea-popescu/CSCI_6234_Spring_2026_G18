@@ -12,6 +12,6 @@ Start CLI:
 
 ```
 cd Project/cli/
-conda activate csci-6234
-python main.py --interactive
+install bun - curl -fsSL https://bun.com/install | bash
+bun run index.ts
 ```
