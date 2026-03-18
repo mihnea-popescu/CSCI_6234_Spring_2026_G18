@@ -27,6 +27,9 @@ interface Bid {
     name: string;
     current_bid: string;
     current_bidder_id: number | null;
+    auction: {
+      id: number;
+    };
   };
   bidder?: { id: number; name: string };
 }
@@ -117,7 +120,17 @@ async function fetchUserBids(token: string): Promise<Bid[]> {
     const response = await fetch("http://127.0.0.1:8000/customers/bids", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (response.ok) return await response.json();
+    if (response.ok) {
+      const bids: Bid[] = await response.json();
+      const deduped = new Map<number, Bid>();
+      for (const bid of bids) {
+        const existing = deduped.get(bid.item_id);
+        if (!existing || parseFloat(bid.amount) > parseFloat(existing.amount)) {
+          deduped.set(bid.item_id, bid);
+        }
+      }
+      return Array.from(deduped.values());
+    }
   } catch (e) {
     console.error("Failed to fetch bids:", e);
   }
@@ -326,17 +339,58 @@ async function main() {
 
   let inputField: InputRenderable;
 
+  let rightPaneAuctionsText: TextRenderable[] = [];
+  let rightPaneBidsText: TextRenderable[] = [];
+  let rightPaneAuctionsPlaceholder: TextRenderable;
+  let rightPaneBidsPlaceholder: TextRenderable;
+  let rightPaneContainer: any;
+
   const updateRightPane = async () => {
     const newToken = getToken();
     if (!newToken || !currentUser) {
       rightPaneStatusText.content = "Status: Guest";
+      rightPaneAuctionsText.forEach(el => el.content = "");
+      rightPaneBidsText.forEach(el => el.content = "");
+      rightPaneAuctionsPlaceholder.content = "No registered auctions";
+      rightPaneAuctionsPlaceholder.visible = true;
+      rightPaneBidsPlaceholder.content = "No bids placed";
+      rightPaneBidsPlaceholder.visible = true;
       return;
     }
+
     const [newAuctions, newBids] = await Promise.all([
       fetchAuctions(newToken),
       fetchUserBids(newToken),
     ]);
-    rightPaneStatusText.content = `Status: Logged in as ${currentUser.name}`;
+    rightPaneStatusText.content = `Status: ${currentUser.name}`;
+
+    const registered = newAuctions.filter((a: Auction) => a.is_registered);
+
+    rightPaneAuctionsText.forEach(el => el.content = "");
+    rightPaneAuctionsPlaceholder.visible = registered.length === 0;
+    rightPaneAuctionsPlaceholder.content = "No registered auctions";
+
+    for (let i = 0; i < registered.length && i < rightPaneAuctionsText.length; i++) {
+      rightPaneAuctionsText[i].content = `• ${registered[i].name} (${registered[i].status})`;
+    }
+
+    rightPaneBidsText.forEach(el => el.content = "");
+    rightPaneBidsPlaceholder.visible = newBids.length === 0;
+    rightPaneBidsPlaceholder.content = "No bids placed";
+
+    const userId = currentUser?.id || null;
+    for (let i = 0; i < newBids.length && i < rightPaneBidsText.length; i++) {
+      const bid = newBids[i];
+      if (!bid) continue;
+      const isWinning = bid.item.current_bidder_id === userId;
+      if (isWinning) {
+        rightPaneBidsText[i].content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - $${bid.item.current_bid} (You)`;
+        rightPaneBidsText[i].fg = "#00FF00";
+      } else {
+        rightPaneBidsText[i].content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
+        rightPaneBidsText[i].fg = undefined;
+      }
+    }
   };
 
   const processCommand = async (cmd: string): Promise<ChatMessage> => {
@@ -451,6 +505,7 @@ async function main() {
           const result = await apiEndAuction(token!, endAuctionData.auctionId!);
           endAuctionData = {};
           if (result.success && result.data) {
+            await updateRightPane();
             return { type: "response", content: `Auction ended!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}` };
           }
           return { type: "response", content: result.error || "Failed to end auction" };
@@ -656,48 +711,83 @@ async function main() {
     Box({ id: "input-area", padding: 1 }, inputField)
   );
 
-  const rightPaneChildren: any[] = [
+  rightPaneAuctionsText = [];
+  rightPaneBidsText = [];
+
+  const rightPaneHeader: any[] = [
     rightPaneStatusText,
     Text({ content: "" }),
     Text({ content: "My Registered Auctions", bold: true }),
     Text({ content: "─".repeat(30) }),
   ];
 
-  if (registeredAuctions.length === 0) {
-    rightPaneChildren.push(Text({ content: "No registered auctions" }));
-  } else {
-    for (const auction of registeredAuctions) {
-      rightPaneChildren.push(Text({ content: `• ${auction.name} (${auction.status})` }));
-    }
+  rightPaneAuctionsPlaceholder = new TextRenderable(renderer, {
+    content: registeredAuctions.length === 0 ? "No registered auctions" : "",
+    flexShrink: 0,
+  });
+  rightPaneAuctionsPlaceholder.visible = registeredAuctions.length === 0;
+
+  for (let i = 0; i < Math.max(registeredAuctions.length, 5); i++) {
+    const t = new TextRenderable(renderer, {
+      content: i < registeredAuctions.length ? `• ${registeredAuctions[i].name} (${registeredAuctions[i].status})` : "",
+      flexShrink: 0,
+    });
+    t.visible = i < registeredAuctions.length;
+    rightPaneAuctionsText.push(t);
   }
 
-  rightPaneChildren.push(Text({ content: "" }));
-  rightPaneChildren.push(Text({ content: "My Bids", bold: true }));
-  rightPaneChildren.push(Text({ content: "─".repeat(30) }));
+  const rightPaneBidsHeader: any[] = [
+    Text({ content: "" }),
+    Text({ content: "My Bids", bold: true }),
+    Text({ content: "─".repeat(30) }),
+  ];
 
-  if (bids.length === 0) {
-    rightPaneChildren.push(Text({ content: "No bids placed" }));
-  } else {
-    for (const bid of bids) {
-      const isWinning = bid.item.current_bidder_id === userId;
-      rightPaneChildren.push(
-        Text({
-          content: `• ${bid.item.name} - $${bid.item.current_bid}${isWinning ? " (You)" : ""}`,
-          fg: isWinning ? "#00FF00" : undefined,
-        })
-      );
+  rightPaneBidsPlaceholder = new TextRenderable(renderer, {
+    content: bids.length === 0 ? "No bids placed" : "",
+    flexShrink: 0,
+  });
+  rightPaneBidsPlaceholder.visible = bids.length === 0;
+
+  for (let i = 0; i < Math.max(bids.length, 5); i++) {
+    const bid = bids[i];
+    const isWinning = bid && bid.item.current_bidder_id === userId;
+    let content: string;
+    let fg: string | undefined;
+    if (bid) {
+      if (isWinning) {
+        content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - $${bid.item.current_bid} (You)`;
+        fg = "#00FF00";
+      } else {
+        content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
+        fg = undefined;
+      }
+    } else {
+      content = "";
+      fg = undefined;
     }
+    const t = new TextRenderable(renderer, {
+      content,
+      fg,
+      flexShrink: 0,
+    });
+    t.visible = i < bids.length;
+    rightPaneBidsText.push(t);
   }
 
-  const rightPane = Box(
+  rightPaneContainer = Box(
     { flex: 1, border: true, borderStyle: "rounded", padding: 1, flexDirection: "column", gap: 1 },
-    ...rightPaneChildren
+    ...rightPaneHeader,
+    rightPaneAuctionsPlaceholder,
+    ...rightPaneAuctionsText,
+    ...rightPaneBidsHeader,
+    rightPaneBidsPlaceholder,
+    ...rightPaneBidsText
   );
 
   const mainBox = Box(
     { flexDirection: "row", width: "100%", height: "100%" },
     leftPane,
-    rightPane
+    rightPaneContainer
   );
 
   renderer.root.add(mainBox);
