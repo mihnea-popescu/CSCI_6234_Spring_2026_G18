@@ -1,0 +1,16 @@
+@startuml Place Bid
+title Place Bid
+actor Customer
+participant Client
+participant API
+database Database
+
+Customer -> Client: place bid (auction_id, item_id, amount)
+Client -> API: POST /{auction_id}/bids
+API -> Database: check registration, get item
+Database --> API: registration, item
+API -> Database: update current_bid, insert bid
+Database --> API: bid id
+API --> Client: BidResponse
+Client --> Customer: bid accepted
+@enduml

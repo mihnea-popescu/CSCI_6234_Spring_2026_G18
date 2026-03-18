@@ -1,0 +1,16 @@
+@startuml View Completed Auctions
+title View Completed Auctions
+actor User
+participant Client
+participant API
+database Database
+
+User -> Client: list completed auctions
+Client -> API: GET /auctions?status=ended
+API -> Database: authenticate user
+Database --> API: user
+API -> Database: query auctions (ended)
+Database --> API: auction list
+API --> Client: List[AuctionResponse]
+Client --> User: display auctions
+@enduml
