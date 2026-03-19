@@ -65,6 +65,8 @@ let addItemData: { auctionId?: string; name?: string; openingPrice?: string } = 
 let endAuctionData: { auctionId?: string } = {};
 let updateAuctionData: { auctionId?: string; field?: string; value?: string } = {};
 
+const url = process.env.SERVER_URL
+
 function getToken(): string | null {
   const tokenPath = join(os.homedir(), ".auction-cli", "token");
   if (existsSync(tokenPath)) {
@@ -91,7 +93,7 @@ function deleteToken(): void {
 
 async function fetchCurrentUser(token: string): Promise<User | null> {
   try {
-    const response = await fetch("http://127.0.0.1:8000/auth/me", {
+    const response = await fetch(`${url}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (response.ok) {
@@ -105,7 +107,7 @@ async function fetchCurrentUser(token: string): Promise<User | null> {
 
 async function fetchAuctions(token: string): Promise<Auction[]> {
   try {
-    const response = await fetch("http://127.0.0.1:8000/auctions/get_auctions", {
+    const response = await fetch(`${url}/auctions/get_auctions`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (response.ok) return await response.json();
@@ -117,7 +119,7 @@ async function fetchAuctions(token: string): Promise<Auction[]> {
 
 async function fetchUserBids(token: string): Promise<Bid[]> {
   try {
-    const response = await fetch("http://127.0.0.1:8000/customers/bids", {
+    const response = await fetch(`${url}/customers/bids`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (response.ok) {
@@ -143,7 +145,7 @@ async function apiLogin(email: string, password: string): Promise<{ success: boo
     params.append("username", email);
     params.append("password", password);
 
-    const response = await fetch("http://127.0.0.1:8000/auth/login", {
+    const response = await fetch(`${url}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params.toString(),
@@ -162,7 +164,7 @@ async function apiLogin(email: string, password: string): Promise<{ success: boo
 
 async function apiRegister(name: string, email: string, password: string, role: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch("http://127.0.0.1:8000/auth/register", {
+    const response = await fetch(`${url}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role }),
@@ -184,7 +186,7 @@ async function apiCreateAuction(token: string, name: string, endedAt?: string): 
     const data: any = { name };
     if (endedAt) data.ended_at = endedAt;
 
-    const response = await fetch("http://127.0.0.1:8000/managers/auctions/", {
+    const response = await fetch(`${url}/managers/auctions/`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -204,7 +206,7 @@ async function apiCreateAuction(token: string, name: string, endedAt?: string): 
 
 async function apiAddItem(token: string, auctionId: string, name: string, openingPrice: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const response = await fetch(`http://127.0.0.1:8000/managers/auctions/${auctionId}/items`, {
+    const response = await fetch(`${url}/managers/auctions/${auctionId}/items`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ name, opening_price: parseFloat(openingPrice), auction_id: parseInt(auctionId) }),
@@ -224,7 +226,7 @@ async function apiAddItem(token: string, auctionId: string, name: string, openin
 
 async function apiEndAuction(token: string, auctionId: string): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const response = await fetch(`http://127.0.0.1:8000/managers/auctions/${auctionId}/end`, {
+    const response = await fetch(`${url}/managers/auctions/${auctionId}/end`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -248,7 +250,7 @@ async function apiUpdateAuction(token: string, auctionId: string, field: string,
     else if (field === "status") data.status = value;
     else if (field === "ended_at") data.ended_at = value;
 
-    const response = await fetch(`http://127.0.0.1:8000/managers/auctions/${auctionId}`, {
+    const response = await fetch(`${url}/managers/auctions/${auctionId}`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -570,7 +572,7 @@ async function main() {
         case "register-auction": {
           const auctionId = parseInt(args[0]);
           if (isNaN(auctionId)) return { type: "response", content: "Usage: register-auction <auction_id>" };
-          const res = await fetch(`http://127.0.0.1:8000/auctions/${auctionId}/register`, {
+          const res = await fetch(`${url}/auctions/${auctionId}/register`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -589,7 +591,7 @@ async function main() {
           if (isNaN(auctionId) || isNaN(itemId) || isNaN(amount)) {
             return { type: "response", content: "Usage: place-bid <auction_id> <item_id> <amount>" };
           }
-          const res = await fetch(`http://127.0.0.1:8000/auctions/${auctionId}/bids`, {
+          const res = await fetch(`${url}/auctions/${auctionId}/bids`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ item_id: itemId, amount }),
@@ -615,7 +617,7 @@ async function main() {
         case "view-auction": {
           const auctionId = parseInt(args[0]);
           if (isNaN(auctionId)) return { type: "response", content: "Usage: view-auction <auction_id>" };
-          const res = await fetch(`http://127.0.0.1:8000/auctions/${auctionId}`, {
+          const res = await fetch(`${url}/auctions/${auctionId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) return { type: "response", content: "Auction not found" };

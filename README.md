@@ -13,5 +13,5 @@ Start CLI:
 ```
 cd Project/cli/
 install bun - curl -fsSL https://bun.com/install | bash
-bun run index.ts
+bun index.ts
 ```
