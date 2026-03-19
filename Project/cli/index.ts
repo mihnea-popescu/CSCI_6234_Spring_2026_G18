@@ -7,7 +7,13 @@ import {
   InputRenderable,
   InputRenderableEvents,
 } from "@opentui/core";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  unlinkSync,
+} from "fs";
 import { join } from "path";
 import os from "os";
 
@@ -59,13 +65,20 @@ let chatMessages: ChatMessage[] = [];
 let currentUser: User | null = null;
 let authState: AuthStep = { type: "command" };
 let loginData: { email?: string; password?: string } = {};
-let registerData: { name?: string; email?: string; password?: string; role?: string } = {};
+let registerData: {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+} = {};
 let createAuctionData: { name?: string; endedAt?: string } = {};
-let addItemData: { auctionId?: string; name?: string; openingPrice?: string } = {};
+let addItemData: { auctionId?: string; name?: string; openingPrice?: string } =
+  {};
 let endAuctionData: { auctionId?: string } = {};
-let updateAuctionData: { auctionId?: string; field?: string; value?: string } = {};
+let updateAuctionData: { auctionId?: string; field?: string; value?: string } =
+  {};
 
-const url = process.env.SERVER_URL
+const url = process.env.SERVER_URL;
 
 function getToken(): string | null {
   const tokenPath = join(os.homedir(), ".auction-cli", "token");
@@ -93,6 +106,7 @@ function deleteToken(): void {
 
 async function fetchCurrentUser(token: string): Promise<User | null> {
   try {
+    console.log(`${url}/auth/me`);
     const response = await fetch(`${url}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -139,7 +153,10 @@ async function fetchUserBids(token: string): Promise<Bid[]> {
   return [];
 }
 
-async function apiLogin(email: string, password: string): Promise<{ success: boolean; token?: string; error?: string }> {
+async function apiLogin(
+  email: string,
+  password: string,
+): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
     const params = new URLSearchParams();
     params.append("username", email);
@@ -162,7 +179,12 @@ async function apiLogin(email: string, password: string): Promise<{ success: boo
   }
 }
 
-async function apiRegister(name: string, email: string, password: string, role: string): Promise<{ success: boolean; error?: string }> {
+async function apiRegister(
+  name: string,
+  email: string,
+  password: string,
+  role: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${url}/auth/register`, {
       method: "POST",
@@ -181,14 +203,21 @@ async function apiRegister(name: string, email: string, password: string, role: 
   }
 }
 
-async function apiCreateAuction(token: string, name: string, endedAt?: string): Promise<{ success: boolean; data?: any; error?: string }> {
+async function apiCreateAuction(
+  token: string,
+  name: string,
+  endedAt?: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const data: any = { name };
     if (endedAt) data.ended_at = endedAt;
 
     const response = await fetch(`${url}/managers/auctions/`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
@@ -197,20 +226,38 @@ async function apiCreateAuction(token: string, name: string, endedAt?: string): 
       return { success: true, data: result };
     } else {
       const error = await response.json();
-      return { success: false, error: error.detail || "Failed to create auction" };
+      return {
+        success: false,
+        error: error.detail || "Failed to create auction",
+      };
     }
   } catch (e) {
     return { success: false, error: `Connection error: ${e}` };
   }
 }
 
-async function apiAddItem(token: string, auctionId: string, name: string, openingPrice: string): Promise<{ success: boolean; data?: any; error?: string }> {
+async function apiAddItem(
+  token: string,
+  auctionId: string,
+  name: string,
+  openingPrice: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const response = await fetch(`${url}/managers/auctions/${auctionId}/items`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ name, opening_price: parseFloat(openingPrice), auction_id: parseInt(auctionId) }),
-    });
+    const response = await fetch(
+      `${url}/managers/auctions/${auctionId}/items`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          opening_price: parseFloat(openingPrice),
+          auction_id: parseInt(auctionId),
+        }),
+      },
+    );
 
     if (response.ok) {
       const result = await response.json();
@@ -224,7 +271,10 @@ async function apiAddItem(token: string, auctionId: string, name: string, openin
   }
 }
 
-async function apiEndAuction(token: string, auctionId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+async function apiEndAuction(
+  token: string,
+  auctionId: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const response = await fetch(`${url}/managers/auctions/${auctionId}/end`, {
       method: "POST",
@@ -243,7 +293,12 @@ async function apiEndAuction(token: string, auctionId: string): Promise<{ succes
   }
 }
 
-async function apiUpdateAuction(token: string, auctionId: string, field: string, value: string): Promise<{ success: boolean; data?: any; error?: string }> {
+async function apiUpdateAuction(
+  token: string,
+  auctionId: string,
+  field: string,
+  value: string,
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const data: any = {};
     if (field === "name") data.name = value;
@@ -252,7 +307,10 @@ async function apiUpdateAuction(token: string, auctionId: string, field: string,
 
     const response = await fetch(`${url}/managers/auctions/${auctionId}`, {
       method: "PUT",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
@@ -261,7 +319,10 @@ async function apiUpdateAuction(token: string, auctionId: string, field: string,
       return { success: true, data: result };
     } else {
       const error = await response.json();
-      return { success: false, error: error.detail || "Failed to update auction" };
+      return {
+        success: false,
+        error: error.detail || "Failed to update auction",
+      };
     }
   } catch (e) {
     return { success: false, error: `Connection error: ${e}` };
@@ -291,11 +352,24 @@ async function main() {
 
   if (!token || !currentUser) {
     auctions = [
-      { id: 1, name: "Spring Art Collection", status: "active", is_registered: false },
-      { id: 2, name: "Vintage Electronics Auction", status: "active", is_registered: false },
+      {
+        id: 1,
+        name: "Spring Art Collection",
+        status: "active",
+        is_registered: false,
+      },
+      {
+        id: 2,
+        name: "Vintage Electronics Auction",
+        status: "active",
+        is_registered: false,
+      },
     ];
   } else {
-    [auctions, bids] = await Promise.all([fetchAuctions(token), fetchUserBids(token)]);
+    [auctions, bids] = await Promise.all([
+      fetchAuctions(token),
+      fetchUserBids(token),
+    ]);
   }
 
   const registeredAuctions = auctions.filter((a) => a.is_registered);
@@ -351,8 +425,8 @@ async function main() {
     const newToken = getToken();
     if (!newToken || !currentUser) {
       rightPaneStatusText.content = "Status: Guest";
-      rightPaneAuctionsText.forEach(el => el.content = "");
-      rightPaneBidsText.forEach(el => el.content = "");
+      rightPaneAuctionsText.forEach((el) => (el.content = ""));
+      rightPaneBidsText.forEach((el) => (el.content = ""));
       rightPaneAuctionsPlaceholder.content = "No registered auctions";
       rightPaneAuctionsPlaceholder.visible = true;
       rightPaneBidsPlaceholder.content = "No bids placed";
@@ -368,15 +442,20 @@ async function main() {
 
     const registered = newAuctions.filter((a: Auction) => a.is_registered);
 
-    rightPaneAuctionsText.forEach(el => el.content = "");
+    rightPaneAuctionsText.forEach((el) => (el.content = ""));
     rightPaneAuctionsPlaceholder.visible = registered.length === 0;
     rightPaneAuctionsPlaceholder.content = "No registered auctions";
 
-    for (let i = 0; i < registered.length && i < rightPaneAuctionsText.length; i++) {
-      rightPaneAuctionsText[i].content = `• ${registered[i].name} (${registered[i].status})`;
+    for (
+      let i = 0;
+      i < registered.length && i < rightPaneAuctionsText.length;
+      i++
+    ) {
+      rightPaneAuctionsText[i].content =
+        `• ${registered[i].name} (${registered[i].status})`;
     }
 
-    rightPaneBidsText.forEach(el => el.content = "");
+    rightPaneBidsText.forEach((el) => (el.content = ""));
     rightPaneBidsPlaceholder.visible = newBids.length === 0;
     rightPaneBidsPlaceholder.content = "No bids placed";
 
@@ -386,10 +465,12 @@ async function main() {
       if (!bid) continue;
       const isWinning = bid.item.current_bidder_id === userId;
       if (isWinning) {
-        rightPaneBidsText[i].content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - $${bid.item.current_bid} (You)`;
+        rightPaneBidsText[i].content =
+          `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - $${bid.item.current_bid} (You)`;
         rightPaneBidsText[i].fg = "#00FF00";
       } else {
-        rightPaneBidsText[i].content = `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
+        rightPaneBidsText[i].content =
+          `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
         rightPaneBidsText[i].fg = undefined;
       }
     }
@@ -427,7 +508,10 @@ async function main() {
             saveToken(result.token);
             currentUser = await fetchCurrentUser(result.token);
             await updateRightPane();
-            return { type: "response", content: `Logged in as ${currentUser?.email}` };
+            return {
+              type: "response",
+              content: `Logged in as ${currentUser?.email}`,
+            };
           }
           return { type: "response", content: result.error || "Login failed" };
         }
@@ -447,7 +531,10 @@ async function main() {
         } else if (authState.step === "role") {
           const role = cmd.trim().toLowerCase();
           if (role !== "customer" && role !== "manager") {
-            return { type: "prompt", content: "Invalid role. Please enter 'customer' or 'manager':" };
+            return {
+              type: "prompt",
+              content: "Invalid role. Please enter 'customer' or 'manager':",
+            };
           }
           registerData.role = role;
           authState = { type: "command" };
@@ -456,30 +543,50 @@ async function main() {
             registerData.name!,
             registerData.email!,
             registerData.password!,
-            registerData.role!
+            registerData.role!,
           );
           registerData = {};
 
           if (result.success) {
-            return { type: "response", content: "Registration successful! You can now login." };
+            return {
+              type: "response",
+              content: "Registration successful! You can now login.",
+            };
           }
-          return { type: "response", content: result.error || "Registration failed" };
+          return {
+            type: "response",
+            content: result.error || "Registration failed",
+          };
         }
       } else if (authState.type === "create-auction") {
         if (authState.step === "name") {
           createAuctionData.name = cmd.trim();
           authState = { type: "create-auction", step: "ended-at" };
-          return { type: "prompt", content: "Enter end date (YYYY-MM-DDTHH:MM:SS) or press Enter to skip:" };
+          return {
+            type: "prompt",
+            content:
+              "Enter end date (YYYY-MM-DDTHH:MM:SS) or press Enter to skip:",
+          };
         } else if (authState.step === "ended-at") {
           const endedAt = cmd.trim();
           if (endedAt) createAuctionData.endedAt = endedAt;
           authState = { type: "command" };
-          const result = await apiCreateAuction(token!, createAuctionData.name!, createAuctionData.endedAt);
+          const result = await apiCreateAuction(
+            token!,
+            createAuctionData.name!,
+            createAuctionData.endedAt,
+          );
           createAuctionData = {};
           if (result.success && result.data) {
-            return { type: "response", content: `Auction created!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}` };
+            return {
+              type: "response",
+              content: `Auction created!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}`,
+            };
           }
-          return { type: "response", content: result.error || "Failed to create auction" };
+          return {
+            type: "response",
+            content: result.error || "Failed to create auction",
+          };
         }
       } else if (authState.type === "add-item") {
         if (authState.step === "auction-id") {
@@ -493,12 +600,23 @@ async function main() {
         } else if (authState.step === "opening-price") {
           addItemData.openingPrice = cmd.trim();
           authState = { type: "command" };
-          const result = await apiAddItem(token!, addItemData.auctionId!, addItemData.name!, addItemData.openingPrice!);
+          const result = await apiAddItem(
+            token!,
+            addItemData.auctionId!,
+            addItemData.name!,
+            addItemData.openingPrice!,
+          );
           addItemData = {};
           if (result.success && result.data) {
-            return { type: "response", content: `Item added!\n  Item ID: ${result.data.id}\n  Name: ${result.data.name}\n  Opening Price: $${result.data.opening_price}` };
+            return {
+              type: "response",
+              content: `Item added!\n  Item ID: ${result.data.id}\n  Name: ${result.data.name}\n  Opening Price: $${result.data.opening_price}`,
+            };
           }
-          return { type: "response", content: result.error || "Failed to add item" };
+          return {
+            type: "response",
+            content: result.error || "Failed to add item",
+          };
         }
       } else if (authState.type === "end-auction") {
         if (authState.step === "auction-id") {
@@ -508,9 +626,15 @@ async function main() {
           endAuctionData = {};
           if (result.success && result.data) {
             await updateRightPane();
-            return { type: "response", content: `Auction ended!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}` };
+            return {
+              type: "response",
+              content: `Auction ended!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}`,
+            };
           }
-          return { type: "response", content: result.error || "Failed to end auction" };
+          return {
+            type: "response",
+            content: result.error || "Failed to end auction",
+          };
         }
       } else if (authState.type === "update-auction") {
         if (authState.step === "auction-id") {
@@ -520,7 +644,10 @@ async function main() {
         } else if (authState.step === "field") {
           const field = cmd.trim().toLowerCase();
           if (field !== "name" && field !== "status" && field !== "ended_at") {
-            return { type: "prompt", content: `Invalid field. ${formatUpdateAuctionFields()}` };
+            return {
+              type: "prompt",
+              content: `Invalid field. ${formatUpdateAuctionFields()}`,
+            };
           }
           updateAuctionData.field = field;
           authState = { type: "update-auction", step: "value" };
@@ -528,18 +655,32 @@ async function main() {
         } else if (authState.step === "value") {
           updateAuctionData.value = cmd.trim();
           authState = { type: "command" };
-          const result = await apiUpdateAuction(token!, updateAuctionData.auctionId!, updateAuctionData.field!, updateAuctionData.value!);
+          const result = await apiUpdateAuction(
+            token!,
+            updateAuctionData.auctionId!,
+            updateAuctionData.field!,
+            updateAuctionData.value!,
+          );
           updateAuctionData = {};
           if (result.success && result.data) {
-            return { type: "response", content: `Auction updated!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}` };
+            return {
+              type: "response",
+              content: `Auction updated!\n  ID: ${result.data.id}\n  Name: ${result.data.name}\n  Status: ${result.data.status}`,
+            };
           }
-          return { type: "response", content: result.error || "Failed to update auction" };
+          return {
+            type: "response",
+            content: result.error || "Failed to update auction",
+          };
         }
       }
     }
 
     if (!token && command !== "help") {
-      return { type: "response", content: "Not logged in. Use 'login' or 'register' first." };
+      return {
+        type: "response",
+        content: "Not logged in. Use 'login' or 'register' first.",
+      };
     }
 
     try {
@@ -551,7 +692,10 @@ async function main() {
           if (!currentUser) {
             return { type: "response", content: "Not logged in" };
           }
-          return { type: "response", content: `${currentUser.name} (${currentUser.email}) - ${currentUser.role}` };
+          return {
+            type: "response",
+            content: `${currentUser.name} (${currentUser.email}) - ${currentUser.role}`,
+          };
 
         case "logout":
           deleteToken();
@@ -561,7 +705,8 @@ async function main() {
 
         case "list-auctions": {
           const auctionList = await fetchAuctions(token!);
-          if (!auctionList.length) return { type: "response", content: "No auctions found." };
+          if (!auctionList.length)
+            return { type: "response", content: "No auctions found." };
           let result = "";
           for (const a of auctionList) {
             result += `  ${a.name} (ID: ${a.id}) - ${a.status}\n`;
@@ -571,17 +716,27 @@ async function main() {
 
         case "register-auction": {
           const auctionId = parseInt(args[0]);
-          if (isNaN(auctionId)) return { type: "response", content: "Usage: register-auction <auction_id>" };
+          if (isNaN(auctionId))
+            return {
+              type: "response",
+              content: "Usage: register-auction <auction_id>",
+            };
           const res = await fetch(`${url}/auctions/${auctionId}/register`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) {
             const err = await res.json();
-            return { type: "response", content: err.detail || "Failed to register" };
+            return {
+              type: "response",
+              content: err.detail || "Failed to register",
+            };
           }
           await updateRightPane();
-          return { type: "response", content: "Successfully registered for auction!" };
+          return {
+            type: "response",
+            content: "Successfully registered for auction!",
+          };
         }
 
         case "place-bid": {
@@ -589,16 +744,25 @@ async function main() {
           const itemId = parseInt(args[1]);
           const amount = parseFloat(args[2]);
           if (isNaN(auctionId) || isNaN(itemId) || isNaN(amount)) {
-            return { type: "response", content: "Usage: place-bid <auction_id> <item_id> <amount>" };
+            return {
+              type: "response",
+              content: "Usage: place-bid <auction_id> <item_id> <amount>",
+            };
           }
           const res = await fetch(`${url}/auctions/${auctionId}/bids`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ item_id: itemId, amount }),
           });
           if (!res.ok) {
             const err = await res.json();
-            return { type: "response", content: err.detail || "Failed to place bid" };
+            return {
+              type: "response",
+              content: err.detail || "Failed to place bid",
+            };
           }
           await updateRightPane();
           return { type: "response", content: "Bid placed successfully!" };
@@ -606,7 +770,8 @@ async function main() {
 
         case "my-bids": {
           const bidList = await fetchUserBids(token!);
-          if (!bidList.length) return { type: "response", content: "No bids found." };
+          if (!bidList.length)
+            return { type: "response", content: "No bids found." };
           let result = "Your Bids:\n";
           for (const bid of bidList) {
             result += `  ${bid.item.name} - $${bid.amount}\n`;
@@ -616,11 +781,16 @@ async function main() {
 
         case "view-auction": {
           const auctionId = parseInt(args[0]);
-          if (isNaN(auctionId)) return { type: "response", content: "Usage: view-auction <auction_id>" };
+          if (isNaN(auctionId))
+            return {
+              type: "response",
+              content: "Usage: view-auction <auction_id>",
+            };
           const res = await fetch(`${url}/auctions/${auctionId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (!res.ok) return { type: "response", content: "Auction not found" };
+          if (!res.ok)
+            return { type: "response", content: "Auction not found" };
           const auction = await res.json();
           let result = `Auction: ${auction.name}\nStatus: ${auction.status}\n`;
           if (auction.items?.length) {
@@ -634,7 +804,10 @@ async function main() {
 
         case "create-auction": {
           if (currentUser?.role !== "manager") {
-            return { type: "response", content: "You are not authorized to create auctions." };
+            return {
+              type: "response",
+              content: "You are not authorized to create auctions.",
+            };
           }
           authState = { type: "create-auction", step: "name" };
           return { type: "prompt", content: "Enter auction name:" };
@@ -642,7 +815,10 @@ async function main() {
 
         case "add-item": {
           if (currentUser?.role !== "manager") {
-            return { type: "response", content: "You are not authorized to add items." };
+            return {
+              type: "response",
+              content: "You are not authorized to add items.",
+            };
           }
           authState = { type: "add-item", step: "auction-id" };
           return { type: "prompt", content: "Enter auction ID:" };
@@ -650,7 +826,10 @@ async function main() {
 
         case "end-auction": {
           if (currentUser?.role !== "manager") {
-            return { type: "response", content: "You are not authorized to end auctions." };
+            return {
+              type: "response",
+              content: "You are not authorized to end auctions.",
+            };
           }
           authState = { type: "end-auction", step: "auction-id" };
           return { type: "prompt", content: "Enter auction ID to end:" };
@@ -658,14 +837,20 @@ async function main() {
 
         case "update-auction": {
           if (currentUser?.role !== "manager") {
-            return { type: "response", content: "You are not authorized to update auctions." };
+            return {
+              type: "response",
+              content: "You are not authorized to update auctions.",
+            };
           }
           authState = { type: "update-auction", step: "auction-id" };
           return { type: "prompt", content: "Enter auction ID to update:" };
         }
 
         default:
-          return { type: "response", content: `Unknown command: ${command}. Type 'help' for available commands.` };
+          return {
+            type: "response",
+            content: `Unknown command: ${command}. Type 'help' for available commands.`,
+          };
       }
     } catch (e) {
       return { type: "response", content: `Error: ${e}` };
@@ -708,9 +893,15 @@ async function main() {
   inputField.focus();
 
   const leftPane = Box(
-    { flex: 1, border: true, borderStyle: "rounded", padding: 0, flexDirection: "column" },
+    {
+      flex: 1,
+      border: true,
+      borderStyle: "rounded",
+      padding: 0,
+      flexDirection: "column",
+    },
     scrollBox,
-    Box({ id: "input-area", padding: 1 }, inputField)
+    Box({ id: "input-area", padding: 1 }, inputField),
   );
 
   rightPaneAuctionsText = [];
@@ -731,7 +922,10 @@ async function main() {
 
   for (let i = 0; i < Math.max(registeredAuctions.length, 5); i++) {
     const t = new TextRenderable(renderer, {
-      content: i < registeredAuctions.length ? `• ${registeredAuctions[i].name} (${registeredAuctions[i].status})` : "",
+      content:
+        i < registeredAuctions.length
+          ? `• ${registeredAuctions[i].name} (${registeredAuctions[i].status})`
+          : "",
       flexShrink: 0,
     });
     t.visible = i < registeredAuctions.length;
@@ -777,22 +971,31 @@ async function main() {
   }
 
   rightPaneContainer = Box(
-    { flex: 1, border: true, borderStyle: "rounded", padding: 1, flexDirection: "column", gap: 1 },
+    {
+      flex: 1,
+      border: true,
+      borderStyle: "rounded",
+      padding: 1,
+      flexDirection: "column",
+      gap: 1,
+    },
     ...rightPaneHeader,
     rightPaneAuctionsPlaceholder,
     ...rightPaneAuctionsText,
     ...rightPaneBidsHeader,
     rightPaneBidsPlaceholder,
-    ...rightPaneBidsText
+    ...rightPaneBidsText,
   );
 
   const mainBox = Box(
     { flexDirection: "row", width: "100%", height: "100%" },
     leftPane,
-    rightPaneContainer
+    rightPaneContainer,
   );
 
   renderer.root.add(mainBox);
+
+  setInterval(updateRightPane, 2500);
 }
 
 main();
