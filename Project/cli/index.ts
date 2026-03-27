@@ -52,6 +52,33 @@ interface ChatMessage {
   content: string;
 }
 
+interface ForecastItem {
+  date: string;
+  predicted_price: number;
+  lower_95: number;
+  upper_95: number;
+}
+
+interface Prediction {
+  matched_item: string;
+  matched_price_type: string;
+  similarity_score: number;
+  historical_prices: Record<string, number>;
+  forecast: ForecastItem[];
+  aic: number;
+  bic: number;
+}
+
+interface BidPrediction {
+  item_id: number;
+  item_name: string;
+  auction_id: number;
+  current_bid: number;
+  user_bid: number;
+  is_winning: boolean;
+  prediction: Prediction;
+}
+
 type AuthStep =
   | { type: "command" }
   | { type: "login"; step: "email" | "password" }
@@ -151,6 +178,26 @@ async function fetchUserBids(token: string): Promise<Bid[]> {
     console.error("Failed to fetch bids:", e);
   }
   return [];
+}
+
+async function fetchBidPredictions(token: string, steps: number = 3): Promise<{ predictions: BidPrediction[]; error?: string }> {
+  try {
+    const response = await fetch(`${url}/price/predictions/bids?steps=${steps}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return { predictions: data.predictions || [] };
+    } else {
+      const errorText = await response.text();
+      console.error("Prediction API error:", response.status, errorText);
+      return { predictions: [], error: `API error: ${response.status}` };
+    }
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error("Failed to fetch predictions:", errorMsg);
+    return { predictions: [], error: errorMsg };
+  }
 }
 
 async function apiLogin(
@@ -343,7 +390,7 @@ async function main() {
   const initialHelp: ChatMessage = {
     type: "response",
     content:
-      "Welcome to Auction House CLI!\n\nCommands:\n  register              Register a new user\n  login                 Login to your account\n  logout                Logout and exit\n  whoami                Show current user\n  list-auctions         List all auctions\n  view-auction <id>     View auction details\n  register-auction <id> Register for auction\n  place-bid <aid> <iid> <amt> Place a bid\n  my-bids               View your bids\n\nManager Commands:\n  create-auction        Create a new auction\n  add-item              Add item to auction\n  end-auction           End an auction\n  update-auction        Update auction details",
+      "Welcome to Auction House CLI!\n\nCommands:\n  register              Register a new user\n  login                 Login to your account\n  logout                Logout and exit\n  whoami                Show current user\n  list-auctions         List all auctions\n  view-auction <id>     View auction details\n  register-auction <id> Register for auction\n  place-bid <aid> <iid> <amt> Place a bid\n  my-bids               View your bids\n  refresh-predictions    Refresh price predictions\n\nManager Commands:\n  create-auction        Create a new auction\n  add-item              Add item to auction\n  end-auction           End an auction\n  update-auction        Update auction details",
   };
   chatMessages.push(initialHelp);
 
@@ -417,11 +464,13 @@ async function main() {
 
   let rightPaneAuctionsText: TextRenderable[] = [];
   let rightPaneBidsText: TextRenderable[] = [];
+  let rightPanePredictionsText: TextRenderable[] = [];
   let rightPaneAuctionsPlaceholder: TextRenderable;
   let rightPaneBidsPlaceholder: TextRenderable;
+  let rightPanePredictionsPlaceholder: TextRenderable;
   let rightPaneContainer: any;
 
-  const updateRightPane = async () => {
+  const updateSidebarAuctionsAndBids = async () => {
     const newToken = getToken();
     if (!newToken || !currentUser) {
       rightPaneStatusText.content = "Status: Guest";
@@ -438,6 +487,7 @@ async function main() {
       fetchAuctions(newToken),
       fetchUserBids(newToken),
     ]);
+    
     rightPaneStatusText.content = `Status: ${currentUser.name}`;
 
     const registered = newAuctions.filter((a: Auction) => a.is_registered);
@@ -466,14 +516,58 @@ async function main() {
       const isWinning = bid.item.current_bidder_id === userId;
       if (isWinning) {
         rightPaneBidsText[i].content =
-          `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - $${bid.item.current_bid} (You)`;
+          `• ${bid.item.name} - $${bid.item.current_bid} (You)`;
         rightPaneBidsText[i].fg = "#00FF00";
       } else {
         rightPaneBidsText[i].content =
-          `• ${bid.item.name} (Item: ${bid.item.id}, Auc: ${bid.item.auction.id}) - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
+          `• ${bid.item.name} - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
         rightPaneBidsText[i].fg = undefined;
       }
     }
+  };
+
+  const updateSidebarPredictions = async () => {
+    const newToken = getToken();
+    if (!newToken || !currentUser) {
+      rightPanePredictionsText.forEach((el) => (el.content = ""));
+      rightPanePredictionsPlaceholder.content = "No predictions";
+      rightPanePredictionsPlaceholder.visible = true;
+      return;
+    }
+
+    const result = await fetchBidPredictions(newToken, 3);
+    const predictions = result.predictions;
+
+    rightPanePredictionsText.forEach((el) => (el.content = ""));
+    
+    if (result.error) {
+      rightPanePredictionsPlaceholder.visible = true;
+      rightPanePredictionsPlaceholder.content = `Error: ${result.error}`;
+    } else if (predictions.length === 0) {
+      rightPanePredictionsPlaceholder.visible = true;
+      rightPanePredictionsPlaceholder.content = "No predictions";
+    } else {
+      rightPanePredictionsPlaceholder.visible = false;
+    }
+
+    for (let i = 0; i < predictions.length && i < rightPanePredictionsText.length; i++) {
+      const pred = predictions[i];
+      if (!pred) continue;
+      const nextPrice = pred.prediction.forecast[0]?.predicted_price || 0;
+      const diff = nextPrice - pred.current_bid;
+      const diffStr = diff >= 0 ? `+$${diff.toFixed(2)}` : `-$${Math.abs(diff).toFixed(2)}`;
+      const trendColor = diff >= 0 ? "#00FF00" : "#FF6B6B";
+      
+      rightPanePredictionsText[i].content =
+        `• ${pred.item_name}: $${nextPrice.toFixed(2)} (${diffStr}) vs "${pred.prediction.matched_item}"`;
+      rightPanePredictionsText[i].fg = trendColor;
+      rightPanePredictionsText[i].visible = true;
+    }
+  };
+
+  const updateRightPane = async () => {
+    await updateSidebarAuctionsAndBids();
+    await updateSidebarPredictions();
   };
 
   const processCommand = async (cmd: string): Promise<ChatMessage> => {
@@ -507,11 +601,16 @@ async function main() {
           if (result.success && result.token) {
             saveToken(result.token);
             currentUser = await fetchCurrentUser(result.token);
-            await updateRightPane();
-            return {
-              type: "response",
-              content: `Logged in as ${currentUser?.email}`,
-            };
+            await updateSidebarAuctionsAndBids();
+            const predResult = await fetchBidPredictions(result.token, 3);
+            await updateSidebarPredictions();
+            let msg = `Logged in as ${currentUser?.email}`;
+            if (predResult.error) {
+              msg += `\n⚠ Prediction service error: ${predResult.error}`;
+            } else if (predResult.predictions.length === 0) {
+              msg += `\nℹ No predictions available yet (place bids to see predictions)`;
+            }
+            return { type: "response", content: msg };
           }
           return { type: "response", content: result.error || "Login failed" };
         }
@@ -697,6 +796,11 @@ async function main() {
             content: `${currentUser.name} (${currentUser.email}) - ${currentUser.role}`,
           };
 
+        case "refresh-predictions": {
+          await updateSidebarPredictions();
+          return { type: "response", content: "Predictions refreshed!" };
+        }
+
         case "logout":
           deleteToken();
           currentUser = null;
@@ -764,7 +868,8 @@ async function main() {
               content: err.detail || "Failed to place bid",
             };
           }
-          await updateRightPane();
+          await updateSidebarAuctionsAndBids();
+          await updateSidebarPredictions();
           return { type: "response", content: "Bid placed successfully!" };
         }
 
@@ -906,6 +1011,7 @@ async function main() {
 
   rightPaneAuctionsText = [];
   rightPaneBidsText = [];
+  rightPanePredictionsText = [];
 
   const rightPaneHeader: any[] = [
     rightPaneStatusText,
@@ -985,7 +1091,24 @@ async function main() {
     ...rightPaneBidsHeader,
     rightPaneBidsPlaceholder,
     ...rightPaneBidsText,
+    Text({ content: "" }),
+    Text({ content: "Price Predictions (3-day)", bold: true }),
+    Text({ content: "─".repeat(30) }),
   );
+
+  rightPanePredictionsPlaceholder = new TextRenderable(renderer, {
+    content: "No predictions",
+    flexShrink: 0,
+  });
+  rightPanePredictionsPlaceholder.visible = true;
+  rightPaneContainer.add(rightPanePredictionsPlaceholder);
+
+  for (let i = 0; i < 5; i++) {
+    const t = new TextRenderable(renderer, { content: "", fg: undefined, flexShrink: 0 });
+    t.visible = false;
+    rightPanePredictionsText.push(t);
+    rightPaneContainer.add(t);
+  }
 
   const mainBox = Box(
     { flexDirection: "row", width: "100%", height: "100%" },
@@ -995,7 +1118,8 @@ async function main() {
 
   renderer.root.add(mainBox);
 
-  setInterval(updateRightPane, 2500);
+  setInterval(updateSidebarAuctionsAndBids, 2500);
+  setInterval(updateSidebarPredictions, 30000);
 }
 
 main();

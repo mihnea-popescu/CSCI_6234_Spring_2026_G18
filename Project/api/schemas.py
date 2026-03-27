@@ -109,3 +109,44 @@ class AuctionDetailResponse(AuctionResponse):
 class AuctionImportResult(BaseModel):
     created: int
     errors: List[str]
+
+class PriceResponse(BaseModel):
+    price: int
+    product_name: str
+
+
+class PricePredictionRequest(BaseModel):
+    item: str
+    steps: int = 7
+    order: tuple = (1, 1, 1)
+    seasonal_order: tuple = (1, 1, 1, 7)
+
+
+class ForecastItem(BaseModel):
+    date: str
+    predicted_price: float
+    lower_95: float
+    upper_95: float
+
+
+class PricePredictionResponse(BaseModel):
+    matched_item: str
+    similarity_score: float
+    historical_prices: dict
+    forecast: list[ForecastItem]
+    aic: float
+    bic: float
+
+
+class BidPredictionItem(BaseModel):
+    item_id: int
+    item_name: str
+    auction_id: int
+    current_bid: float
+    user_bid: float
+    is_winning: bool
+    prediction: PricePredictionResponse
+
+
+class BidPredictionsResponse(BaseModel):
+    predictions: list[BidPredictionItem]
