@@ -15,6 +15,7 @@ import csv
 import random
 import math
 from datetime import date, timedelta
+import os
 
 # ── Simulation parameters ──────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ def simulate_product(
 
 def main():
     input_file = "/Users/rachitdas/Desktop/csci-6234/Project/api/dataset.csv"
+    input_file = os.path.join(project_dir, "dataset.csv")
     output_file = "output.csv"
 
     products = []

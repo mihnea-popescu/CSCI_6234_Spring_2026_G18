@@ -2,11 +2,11 @@ import pandas as pd
 import os
 
 def deduplicate_prices(input_path: str = None, output_path: str = None):
+    project_dir = os.path.dirname(os.path.abspath(__file__))
     if input_path is None:
-        input_path = "/Users/rachitdas/Desktop/csci-6234/Project/api/output_backup.csv"
+        input_path = os.path.join(project_dir, "output_backup.csv")
     if output_path is None:
-        output_path = "/Users/rachitdas/Desktop/csci-6234/Project/api/output.csv"
-    
+        output_path = os.path.join(project_dir, "output.csv")
     print(f"Reading {input_path}...")
     df = pd.read_csv(input_path)
     

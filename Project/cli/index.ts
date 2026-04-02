@@ -474,8 +474,14 @@ async function main() {
     const newToken = getToken();
     if (!newToken || !currentUser) {
       rightPaneStatusText.content = "Status: Guest";
-      rightPaneAuctionsText.forEach((el) => (el.content = ""));
-      rightPaneBidsText.forEach((el) => (el.content = ""));
+      rightPaneAuctionsText.forEach((el) => {
+        el.content = "";
+        el.visible = false;
+      });
+      rightPaneBidsText.forEach((el) => {
+        el.content = "";
+        el.visible = false;
+      });
       rightPaneAuctionsPlaceholder.content = "No registered auctions";
       rightPaneAuctionsPlaceholder.visible = true;
       rightPaneBidsPlaceholder.content = "No bids placed";
@@ -492,36 +498,48 @@ async function main() {
 
     const registered = newAuctions.filter((a: Auction) => a.is_registered);
 
-    rightPaneAuctionsText.forEach((el) => (el.content = ""));
     rightPaneAuctionsPlaceholder.visible = registered.length === 0;
     rightPaneAuctionsPlaceholder.content = "No registered auctions";
 
-    for (
-      let i = 0;
-      i < registered.length && i < rightPaneAuctionsText.length;
-      i++
-    ) {
-      rightPaneAuctionsText[i].content =
-        `• ${registered[i].name} (${registered[i].status})`;
+    for (let i = 0; i < rightPaneAuctionsText.length; i++) {
+      const row = rightPaneAuctionsText[i];
+      if (!row) continue;
+      if (i < registered.length) {
+        const a = registered[i];
+        if (!a) continue;
+        row.content = `• ${a.name} (${a.status})`;
+        row.visible = true;
+      } else {
+        row.content = "";
+        row.visible = false;
+      }
     }
 
-    rightPaneBidsText.forEach((el) => (el.content = ""));
     rightPaneBidsPlaceholder.visible = newBids.length === 0;
     rightPaneBidsPlaceholder.content = "No bids placed";
 
     const userId = currentUser?.id || null;
-    for (let i = 0; i < newBids.length && i < rightPaneBidsText.length; i++) {
-      const bid = newBids[i];
-      if (!bid) continue;
-      const isWinning = bid.item.current_bidder_id === userId;
-      if (isWinning) {
-        rightPaneBidsText[i].content =
-          `• ${bid.item.name} - $${bid.item.current_bid} (You)`;
-        rightPaneBidsText[i].fg = "#00FF00";
+    for (let i = 0; i < rightPaneBidsText.length; i++) {
+      const row = rightPaneBidsText[i];
+      if (!row) continue;
+      if (i < newBids.length) {
+        const bid = newBids[i];
+        if (!bid) continue;
+        const isWinning = bid.item.current_bidder_id === userId;
+        if (isWinning) {
+          row.content =
+            `• ${bid.item.name} - $${bid.item.current_bid} (You)`;
+          row.fg = "#00FF00";
+        } else {
+          row.content =
+            `• ${bid.item.name} - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
+          row.fg = undefined;
+        }
+        row.visible = true;
       } else {
-        rightPaneBidsText[i].content =
-          `• ${bid.item.name} - Your Bid: $${bid.amount} | Highest: $${bid.item.current_bid}`;
-        rightPaneBidsText[i].fg = undefined;
+        row.content = "";
+        row.fg = undefined;
+        row.visible = false;
       }
     }
   };
